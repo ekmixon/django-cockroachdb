@@ -56,9 +56,8 @@ class DatabaseOperations(PostgresDatabaseOperations):
         if format:
             raise ValueError("CockroachDB's EXPLAIN doesn't support any formats.")
         prefix = self.explain_prefix
-        extra = [name for name, value in options.items() if value]
-        if extra:
-            prefix += ' (%s)' % ', '.join(extra)
+        if extra := [name for name, value in options.items() if value]:
+            prefix += f" ({', '.join(extra)})"
         return prefix
 
     def execute_sql_flush(self, sql_list):

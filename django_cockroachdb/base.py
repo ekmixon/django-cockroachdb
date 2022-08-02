@@ -59,14 +59,10 @@ class DatabaseWrapper(PostgresDatabaseWrapper):
         super().init_connection_state()
         global RAN_TELEMETRY_QUERY
         if (
-            # increment_feature_counter is new in CockroachDB 21.1.
-            self.features.is_cockroachdb_21_1 and
-            # Run the telemetry query once, not for every connection.
-            not RAN_TELEMETRY_QUERY and
-            # Don't run telemetry if the user disables it...
-            not getattr(settings, 'DISABLE_COCKROACHDB_TELEMETRY', False) and
-            # ... or when running Django's test suite.
-            not os.environ.get('RUNNING_DJANGOS_TEST_SUITE') == 'true'
+            self.features.is_cockroachdb_21_1
+            and not RAN_TELEMETRY_QUERY
+            and not getattr(settings, 'DISABLE_COCKROACHDB_TELEMETRY', False)
+            and os.environ.get('RUNNING_DJANGOS_TEST_SUITE') != 'true'
         ):
             with self.connection.cursor() as cursor:
                 cursor.execute(
@@ -113,12 +109,12 @@ class DatabaseWrapper(PostgresDatabaseWrapper):
 
     @cached_property
     def cockroachdb_version(self):
-        # Match the numerical portion of the version numbers. For example,
-        # v20.1.0-alpha.20191118-1842-g60d40b8 returns (20, 1, 0).
-        match = re.search(r'v(\d{1,2})\.(\d{1,2})\.(\d{1,2})', self.cockroachdb_server_info)
-        if not match:
+        if match := re.search(
+            r'v(\d{1,2})\.(\d{1,2})\.(\d{1,2})', self.cockroachdb_server_info
+        ):
+            return tuple(int(x) for x in match.groups())
+        else:
             raise Exception(
                 'Unable to determine CockroachDB version from version '
                 'string %r.' % self.cockroachdb_server_info
             )
-        return tuple(int(x) for x in match.groups())

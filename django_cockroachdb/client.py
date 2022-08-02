@@ -19,20 +19,20 @@ class DatabaseClient(BaseDatabaseClient):
         sslrootcert = settings_dict['OPTIONS'].get('sslrootcert')
 
         if db:
-            args += ["--database=%s" % db]
+            args += [f"--database={db}"]
         # Assume all certs are in the directory that has the sslrootcert.
         if sslrootcert:
-            args += ["--certs-dir=%s" % os.path.dirname(sslrootcert)]
+            args += [f"--certs-dir={os.path.dirname(sslrootcert)}"]
             insecure = False
         else:
             # Default to insecure if no ca exists.
             insecure = True
         if user:
-            args += ["--user=%s" % user]
+            args += [f"--user={user}"]
         if host:
-            args += ["--host=%s" % host]
+            args += [f"--host={host}"]
         if port:
-            args += ["--port=%s" % port]
+            args += [f"--port={port}"]
         if insecure:
             args += ["--insecure"]
         args.extend(parameters)

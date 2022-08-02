@@ -76,23 +76,22 @@ class DatabaseSchemaEditor(PostgresDatabaseSchemaEditor):
         # Make ALTER TYPE with SERIAL make sense.
         # table = strip_quotes(model._meta.db_table)
         serial_fields_map = {'bigserial': 'bigint', 'serial': 'integer', 'smallserial': 'smallint'}
-        if new_type.lower() in serial_fields_map:
-            column = strip_quotes(new_field.column)
-            return (
-                (
-                    self.sql_alter_column_type % {
-                        "column": self.quote_name(column),
-                        "type": serial_fields_map[new_type.lower()],
-                    },
-                    [],
-                ),
-                # The PostgreSQL backend manages the column sequence here but
-                # this isn't applicable on CockroachDB because unique_rowid()
-                # is used instead of sequences.
-                [],
-            )
-        else:
+        if new_type.lower() not in serial_fields_map:
             return BaseDatabaseSchemaEditor._alter_column_type_sql(self, model, old_field, new_field, new_type)
+        column = strip_quotes(new_field.column)
+        return (
+            (
+                self.sql_alter_column_type % {
+                    "column": self.quote_name(column),
+                    "type": serial_fields_map[new_type.lower()],
+                },
+                [],
+            ),
+            # The PostgreSQL backend manages the column sequence here but
+            # this isn't applicable on CockroachDB because unique_rowid()
+            # is used instead of sequences.
+            [],
+        )
 
     def _field_should_be_indexed(self, model, field):
         # Foreign keys are automatically indexed by cockroachdb.

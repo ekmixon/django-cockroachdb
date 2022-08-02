@@ -26,7 +26,6 @@ class DatabaseIntrospection(PostgresDatabaseIntrospection):
         # longer when not using the queries below.
         if self.connection.features.is_cockroachdb_21_1:
             return super().get_constraints(cursor, table_name)
-        constraints = {}
         # Loop over the key table, collecting things as constraints. The column
         # array must return column names in the same order in which they were
         # created.
@@ -54,17 +53,22 @@ class DatabaseIntrospection(PostgresDatabaseIntrospection):
             JOIN pg_namespace AS ns ON cl.relnamespace = ns.oid
             WHERE ns.nspname = %s AND cl.relname = %s
         """, ["public", table_name])
-        for constraint, columns, kind, used_cols, options in cursor.fetchall():
-            constraints[constraint] = {
+        constraints = {
+            constraint: {
                 "columns": columns,
                 "primary_key": kind == "p",
                 "unique": kind in ["p", "u"],
-                "foreign_key": tuple(used_cols.split(".", 1)) if kind == "f" else None,
+                "foreign_key": tuple(used_cols.split(".", 1))
+                if kind == "f"
+                else None,
                 "check": kind == "c",
                 "index": False,
                 "definition": None,
                 "options": options,
             }
+            for constraint, columns, kind, used_cols, options in cursor.fetchall()
+        }
+
         # Now get indexes
         cursor.execute("""
             SELECT
